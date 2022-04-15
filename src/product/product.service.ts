@@ -1,59 +1,60 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { User } from 'src/users/entities/user.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateProductDto } from './dto/create-product.dto';
+import { FilterProductDto } from './dto/filter-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { Product } from './entities/product.entity';
+import { ProductRepository } from './repository/product.repository';
 
 @Injectable()
 export class ProductService {
-  private product: any[] = [];
+  constructor(
+    @InjectRepository(ProductRepository)
+    private readonly productRepository: ProductRepository,
+  ) {}
 
-  getProducts(title: string, price: number): any[] {
-    const product = this.product.filter((product) => {
-      let isMatch = true;
-      if (title && product.title != title) {
-        isMatch = false;
-      }
-      if (price && product.price != price) {
-        isMatch = false;
-      }
-      return isMatch;
+  async getProducts(user: User, filter: FilterProductDto): Promise<Product[]> {
+    return await this.productRepository.getProducts(user, filter);
+  }
+
+  async getProductById(user: User, id: string): Promise<Product> {
+    const product = await this.productRepository.findOne(id, {
+      where: { user },
     });
-    return product;
-  }
-
-  getProductById(id: string) {
-    const product = this.findProductById(id);
-    return this.product[product];
-  }
-
-  createProduct(createProductDto: CreateProductDto) {
-    const { title, description, price } = createProductDto;
-    this.product.push({
-      id: uuidv4(),
-      title,
-      description,
-      price,
-    });
-  }
-
-  updateProduct(id: string, updateProductDto: UpdateProductDto) {
-    const { title, description, price } = updateProductDto;
-    const product = this.findProductById(id);
-    this.product[product].title = title;
-    this.product[product].description = description;
-    this.product[product].price = price;
-  }
-
-  findProductById(id: string) {
-    const product = this.product.findIndex((product) => product.id === id);
-    if (product === -1) {
+    if (!product) {
       throw new NotFoundException(`Product with id ${id} is not found`);
     }
     return product;
   }
 
-  deleteProduct(id: string) {
-    const product = this.findProductById(id);
-    this.product.splice(product, 1);
+  async createProduct(
+    user: User,
+    createProductDto: CreateProductDto,
+  ): Promise<void> {
+    return await this.productRepository.createProduct(user, createProductDto);
+  }
+
+  async updateProduct(
+    user: User,
+    id: string,
+    updateProductDto: UpdateProductDto,
+  ): Promise<void> {
+    const { title, description, price } = updateProductDto;
+
+    const product = await this.getProductById(user, id);
+    product.title = title;
+    product.description = description;
+    product.price = price;
+
+    await product.save();
+  }
+
+  async deleteProduct(user: User, id: string): Promise<void> {
+    const result = await this.productRepository.delete({id, user});
+    if (result.affected == 0) {
+      throw new NotFoundException(`Product with id ${id} is not found`);
+    }
   }
 }
