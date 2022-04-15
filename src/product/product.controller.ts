@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
+import { CreateProductDto } from './dto/create-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductService } from './product.service';
 
 @Controller('product')
@@ -12,31 +23,21 @@ export class ProductController {
 
   @Get(':id')
   getProductById(@Param('id') id: string) {
-      return this.productService.getProductById(id);
+    return this.productService.getProductById(id);
   }
 
   @Post()
-  createProduct(
-    @Body('title') title: string,
-    @Body('description') description: string,
-    @Body('price') price: number,
-  ) {
-    return this.productService.createProduct(title, description, price);
+  createProduct(@Body() payload: CreateProductDto) {
+    return this.productService.createProduct(payload);
   }
 
   @Put(':id')
-  updateProduct(
-    @Param('id') id: string,
-    @Body('title') title: string,
-    @Body('description') description: string,
-    @Body('price') price: number,
-  ) {
-    return this.productService.updateProduct(id, title, description, price);
+  updateProduct(@Param('id') id: string, @Body() payload: UpdateProductDto) {
+    return this.productService.updateProduct(id, payload);
   }
 
   @Delete(':id')
   deleteProduct(@Param('id') id: string) {
-      return this.productService.deleteProduct(id);
+    return this.productService.deleteProduct(id);
   }
-
 }
